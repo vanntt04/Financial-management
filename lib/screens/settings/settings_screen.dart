@@ -13,49 +13,82 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Cài đặt'), elevation: 0),
+      appBar: AppBar(title: const Text('Cài đặt', style: TextStyle(fontWeight: FontWeight.bold))),
       body: ListView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         children: [
-          const Text('Tùy chỉnh ứng dụng', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey)),
+          _buildSectionHeader('Tùy chỉnh'),
           const SizedBox(height: 8),
-          SwitchListTile(
-            title: const Text('Nhận thông báo'),
-            subtitle: const Text('Nhắc nhở nhập liệu và báo cáo hàng ngày'),
-            secondary: const Icon(Icons.notifications_active_outlined),
-            value: _notificationsEnabled,
-            onChanged: (bool value) => setState(() => _notificationsEnabled = value),
-          ),
-          SwitchListTile(
-            title: const Text('Chế độ tối (Dark Mode)'),
-            secondary: const Icon(Icons.dark_mode_outlined),
-            value: _darkModeEnabled,
-            onChanged: (bool value) => setState(() => _darkModeEnabled = value),
-          ),
-          ListTile(
-            leading: const Icon(Icons.language_outlined),
-            title: const Text('Ngôn ngữ'),
-            trailing: const Text('Tiếng Việt', style: TextStyle(color: Colors.grey)),
-            onTap: () {},
-          ),
-          const Divider(height: 32),
-          const Text('Khác', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey)),
+          _buildCard([
+            SwitchListTile(
+              title: const Text('Nhận thông báo', style: TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: Text('Nhắc nhở nhập liệu hàng ngày', style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+              secondary: _buildIconBox(Icons.notifications_active_outlined, scheme),
+              value: _notificationsEnabled,
+              onChanged: (v) => setState(() => _notificationsEnabled = v),
+            ),
+            Divider(height: 1, indent: 72, color: Colors.grey.shade100),
+            SwitchListTile(
+              title: const Text('Chế độ tối', style: TextStyle(fontWeight: FontWeight.w600)),
+              secondary: _buildIconBox(Icons.dark_mode_outlined, scheme),
+              value: _darkModeEnabled,
+              onChanged: (v) => setState(() => _darkModeEnabled = v),
+            ),
+            Divider(height: 1, indent: 72, color: Colors.grey.shade100),
+            ListTile(
+              leading: _buildIconBox(Icons.language_outlined, scheme),
+              title: const Text('Ngôn ngữ', style: TextStyle(fontWeight: FontWeight.w600)),
+              trailing: Text('Tiếng Việt', style: TextStyle(color: Colors.grey.shade500)),
+              onTap: () {},
+            ),
+          ]),
+
+          const SizedBox(height: 20),
+          _buildSectionHeader('Khác'),
           const SizedBox(height: 8),
-          ListTile(
-            leading: const Icon(Icons.help_outline),
-            title: const Text('Trợ giúp & Phản hồi'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.pushNamed(context, '/about-help'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.info_outline),
-            title: const Text('Thông tin ứng dụng'),
-            trailing: const Text('Phiên bản 1.0.0', style: TextStyle(color: Colors.grey)),
-            onTap: () {},
-          ),
+          _buildCard([
+            ListTile(
+              leading: _buildIconBox(Icons.help_outline, scheme),
+              title: const Text('Trợ giúp & Phản hồi', style: TextStyle(fontWeight: FontWeight.w600)),
+              trailing: Icon(Icons.chevron_right, color: Colors.grey.shade400),
+              onTap: () => Navigator.pushNamed(context, '/about-help'),
+            ),
+            Divider(height: 1, indent: 72, color: Colors.grey.shade100),
+            ListTile(
+              leading: _buildIconBox(Icons.info_outline, scheme),
+              title: const Text('Thông tin ứng dụng', style: TextStyle(fontWeight: FontWeight.w600)),
+              trailing: Text('v1.0.0', style: TextStyle(color: Colors.grey.shade500)),
+              onTap: () {},
+            ),
+          ]),
         ],
       ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey.shade500, letterSpacing: 0.5));
+  }
+
+  Widget _buildCard(List<Widget> children) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2))],
+      ),
+      child: Column(children: children),
+    );
+  }
+
+  Widget _buildIconBox(IconData icon, ColorScheme scheme) {
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(color: scheme.primaryContainer, borderRadius: BorderRadius.circular(10)),
+      child: Icon(icon, color: scheme.primary, size: 18),
     );
   }
 }

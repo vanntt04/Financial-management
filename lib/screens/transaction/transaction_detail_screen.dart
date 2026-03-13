@@ -1,64 +1,94 @@
 import 'package:flutter/material.dart';
+import '../../utils/currency_formatter.dart';
 
 class TransactionDetailScreen extends StatelessWidget {
   const TransactionDetailScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Dữ liệu giả lập được truyền từ màn danh sách sang
+    final scheme = Theme.of(context).colorScheme;
     final bool isExpense = true;
+    final color = isExpense ? Colors.red.shade400 : Colors.green.shade600;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Chi tiết giao dịch'),
-        elevation: 0,
+        title: const Text('Chi tiết giao dịch', style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           IconButton(icon: const Icon(Icons.edit_outlined), onPressed: () {}),
           IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red), onPressed: () {}),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            CircleAvatar(
-              radius: 40,
-              backgroundColor: isExpense ? Colors.red.shade50 : Colors.green.shade50,
-              child: Icon(Icons.restaurant, size: 40, color: isExpense ? Colors.red : Colors.green),
+            // Amount hero card
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, 3))],
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+                    child: Icon(Icons.restaurant, size: 32, color: color),
+                  ),
+                  const SizedBox(height: 14),
+                  const Text('Ăn trưa', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Text(
+                    '-${formatCurrency(50000)}',
+                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: color),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
-            const Text('Ăn trưa', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text(
-              '- 50,000 đ',
-              style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: isExpense ? Colors.red : Colors.green),
+
+            // Details card
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2))],
+              ),
+              child: Column(
+                children: [
+                  _buildDetailRow(Icons.calendar_today_outlined, 'Ngày giao dịch', '13/03/2026 12:30', scheme),
+                  _buildDivider(),
+                  _buildDetailRow(Icons.account_balance_wallet_outlined, 'Quỹ / Hũ', 'Chi tiêu thiết yếu', scheme),
+                  _buildDivider(),
+                  _buildDetailRow(Icons.category_outlined, 'Danh mục', 'Ăn uống', scheme),
+                  _buildDivider(),
+                  _buildDetailRow(Icons.notes_outlined, 'Ghi chú', 'Ăn bún chả cùng đồng nghiệp', scheme),
+                ],
+              ),
             ),
-            const SizedBox(height: 32),
-            const Divider(),
-            _buildDetailRow('Ngày giao dịch', '13/03/2026 12:30'),
-            const Divider(),
-            _buildDetailRow('Trừ vào Quỹ/Hũ', 'Chi tiêu thiết yếu'),
-            const Divider(),
-            _buildDetailRow('Danh mục', 'Ăn uống'),
-            const Divider(),
-            _buildDetailRow('Ghi chú', 'Ăn bún chả cùng đồng nghiệp'),
-            const Divider(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  Widget _buildDetailRow(IconData icon, String label, String value, ColorScheme scheme) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(flex: 2, child: Text(label, style: const TextStyle(color: Colors.grey, fontSize: 16))),
-          Expanded(flex: 3, child: Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500), textAlign: TextAlign.right)),
+          Icon(icon, size: 20, color: scheme.primary),
+          const SizedBox(width: 12),
+          Expanded(child: Text(label, style: TextStyle(color: Colors.grey.shade500, fontSize: 13))),
+          Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
         ],
       ),
     );
   }
+
+  Widget _buildDivider() => Divider(height: 1, indent: 48, color: Colors.grey.shade100);
 }

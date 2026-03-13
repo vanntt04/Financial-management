@@ -15,81 +15,68 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tạo tài khoản'),
-        elevation: 0,
+        title: const Text('Tạo tài khoản', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
+            Text(
               'Bắt đầu hành trình\ntài chính của bạn',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.grey.shade800, height: 1.3),
             ),
+            const SizedBox(height: 8),
+            Text('Tạo tài khoản miễn phí ngay hôm nay', style: TextStyle(color: Colors.grey.shade500, fontSize: 14)),
             const SizedBox(height: 32),
 
             TextFormField(
-              decoration: InputDecoration(
-                labelText: 'Họ và tên',
-                prefixIcon: const Icon(Icons.badge_outlined),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
+              decoration: const InputDecoration(labelText: 'Họ và tên', prefixIcon: Icon(Icons.badge_outlined)),
             ),
             const SizedBox(height: 16),
-
             TextFormField(
               keyboardType: TextInputType.emailAddress,
-              decoration: InputDecoration(
-                labelText: 'Email',
-                prefixIcon: const Icon(Icons.email_outlined),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
+              decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email_outlined)),
             ),
             const SizedBox(height: 16),
-
             TextFormField(
               obscureText: _obscurePassword,
               decoration: InputDecoration(
                 labelText: 'Mật khẩu',
                 prefixIcon: const Icon(Icons.lock_outline),
                 suffixIcon: IconButton(
-                  icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                  icon: Icon(_obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined),
                   onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                 ),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
             const SizedBox(height: 16),
-
             TextFormField(
               obscureText: _obscureConfirmPassword,
               decoration: InputDecoration(
                 labelText: 'Xác nhận mật khẩu',
                 prefixIcon: const Icon(Icons.lock_reset_outlined),
                 suffixIcon: IconButton(
-                  icon: Icon(_obscureConfirmPassword ? Icons.visibility_off : Icons.visibility),
+                  icon: Icon(_obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined),
                   onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
                 ),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
             const SizedBox(height: 32),
 
-            FilledButton(
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            SizedBox(
+              height: 52,
+              child: FilledButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Đăng ký thành công! Vui lòng đăng nhập.')),
+                  );
+                },
+                child: const Text('ĐĂNG KÝ'),
               ),
-              onPressed: () {
-                // TODO: Gọi API Spring Boot để đăng ký, thành công thì back về Login
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Đăng ký thành công! Vui lòng đăng nhập.')),
-                );
-              },
-              child: const Text('ĐĂNG KÝ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
           ],
         ),

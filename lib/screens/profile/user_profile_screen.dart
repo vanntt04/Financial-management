@@ -5,63 +5,123 @@ class UserProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Hồ sơ của tôi'),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            const CircleAvatar(
-              radius: 50,
-              backgroundColor: Colors.blueAccent,
-              child: Icon(Icons.person, size: 50, color: Colors.white),
-            ),
-            const SizedBox(height: 16),
-            const Text('Nguyễn Văn A', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            Text('nguyenvana@gmail.com', style: TextStyle(fontSize: 16, color: Colors.grey.shade600)),
-            const SizedBox(height: 32),
-
-            // Các tùy chọn
-            _buildProfileOption(context, Icons.edit_outlined, 'Chỉnh sửa thông tin', '/add-edit-profile'),
-            _buildProfileOption(context, Icons.lock_outline, 'Đổi mật khẩu', '/change-password'),
-            _buildProfileOption(context, Icons.security_outlined, 'Xác thực sinh trắc học', null, hasSwitch: true),
-            const Divider(height: 32),
-            ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: Colors.red.shade50, shape: BoxShape.circle),
-                child: const Icon(Icons.logout, color: Colors.red),
+      backgroundColor: scheme.primary,
+      body: Column(
+        children: [
+          // Green header with avatar
+          SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.arrow_back, color: scheme.onPrimary),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      Expanded(
+                        child: Text('Hồ sơ của tôi', style: TextStyle(color: scheme.onPrimary, fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                      ),
+                      const SizedBox(width: 48),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  CircleAvatar(
+                    radius: 44,
+                    backgroundColor: scheme.onPrimary.withOpacity(0.2),
+                    child: Icon(Icons.person, size: 48, color: scheme.onPrimary),
+                  ),
+                  const SizedBox(height: 12),
+                  Text('Nguyễn Văn A', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: scheme.onPrimary)),
+                  const SizedBox(height: 4),
+                  Text('nguyenvana@gmail.com', style: TextStyle(fontSize: 14, color: scheme.onPrimary.withOpacity(0.75))),
+                ],
               ),
-              title: const Text('Đăng xuất', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-              onTap: () {
-                // Điều hướng về màn hình Login và xóa stack
-                Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-              },
             ),
-          ],
-        ),
+          ),
+
+          // White content
+          Expanded(
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFFF0F7F4),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    _buildSection(context, [
+                      _buildOption(context, Icons.edit_outlined, 'Chỉnh sửa thông tin', '/add-edit-profile', scheme),
+                      _buildOption(context, Icons.lock_outline, 'Đổi mật khẩu', '/change-password', scheme),
+                      _buildSwitchOption(context, Icons.fingerprint_outlined, 'Xác thực sinh trắc học', scheme),
+                    ]),
+                    const SizedBox(height: 16),
+                    _buildSection(context, [
+                      _buildLogoutTile(context),
+                    ]),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildProfileOption(BuildContext context, IconData icon, String title, String? route, {bool hasSwitch = false}) {
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.only(bottom: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
-      child: ListTile(
-        leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
-        trailing: hasSwitch
-            ? Switch(value: true, onChanged: (val) {})
-            : const Icon(Icons.chevron_right),
-        onTap: route != null ? () => Navigator.pushNamed(context, route) : null,
+  Widget _buildSection(BuildContext context, List<Widget> children) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2))],
       ),
+      child: Column(children: children),
+    );
+  }
+
+  Widget _buildOption(BuildContext context, IconData icon, String title, String route, ColorScheme scheme) {
+    return ListTile(
+      leading: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(color: scheme.primaryContainer, borderRadius: BorderRadius.circular(10)),
+        child: Icon(icon, color: scheme.primary, size: 18),
+      ),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+      trailing: Icon(Icons.chevron_right, color: Colors.grey.shade400),
+      onTap: () => Navigator.pushNamed(context, route),
+    );
+  }
+
+  Widget _buildSwitchOption(BuildContext context, IconData icon, String title, ColorScheme scheme) {
+    return ListTile(
+      leading: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(color: scheme.primaryContainer, borderRadius: BorderRadius.circular(10)),
+        child: Icon(icon, color: scheme.primary, size: 18),
+      ),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+      trailing: Switch(value: true, onChanged: (_) {}),
+    );
+  }
+
+  Widget _buildLogoutTile(BuildContext context) {
+    return ListTile(
+      leading: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(10)),
+        child: Icon(Icons.logout, color: Colors.red.shade400, size: 18),
+      ),
+      title: Text('Đăng xuất', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.red.shade400)),
+      onTap: () => Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false),
     );
   }
 }
