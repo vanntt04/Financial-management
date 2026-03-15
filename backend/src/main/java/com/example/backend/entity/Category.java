@@ -2,11 +2,13 @@ package com.example.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
-@Table(name = "Categories")
+@Table(name = "categories")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -17,24 +19,25 @@ public class Category {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "category_id")
-    private Long categoryId;
+    private Integer categoryId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", referencedColumnName = "user_id", nullable = true)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "category_name", length = 100, nullable = false)
+    @Column(name = "category_name", columnDefinition = "nvarchar(100)", nullable = false)
     private String categoryName;
 
     @Column(name = "category_type", length = 10, nullable = false)
     private String categoryType;
 
-    @Column(name = "icon_tag", length = 50)
-    private String iconTag;
-
-    @Column(name = "is_default", nullable = false)
+    @Column(name = "is_deleted", nullable = false)
     @Builder.Default
-    private boolean isDefault = false;
+    private boolean isDeleted = false;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 
     // Relationships
     @OneToMany(mappedBy = "category", fetch = FetchType.LAZY)

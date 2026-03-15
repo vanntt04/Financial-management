@@ -38,7 +38,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             if (jwtUtil.validateToken(token) && !jwtUtil.isTokenBlacklisted(token)) {
-                Long userId = jwtUtil.extractUserId(token);
+                Integer userId = jwtUtil.extractUserId(token);
 
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(

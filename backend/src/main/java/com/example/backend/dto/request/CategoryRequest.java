@@ -15,6 +15,4 @@ public class CategoryRequest {
     @NotBlank(message = "Loại danh mục không được để trống")
     @Pattern(regexp = "^(INCOME|EXPENSE)$", message = "Loại danh mục phải là INCOME hoặc EXPENSE")
     private String categoryType;
-
-    private String iconTag;
 }

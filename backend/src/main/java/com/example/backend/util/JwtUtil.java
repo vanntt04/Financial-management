@@ -29,7 +29,7 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateAccessToken(Long userId) {
+    public String generateAccessToken(Integer userId) {
         return Jwts.builder()
                 .setSubject(userId.toString())
                 .setIssuedAt(new Date())
@@ -39,7 +39,7 @@ public class JwtUtil {
                 .compact();
     }
 
-    public String generateRefreshToken(Long userId) {
+    public String generateRefreshToken(Integer userId) {
         return Jwts.builder()
                 .setSubject(userId.toString())
                 .setIssuedAt(new Date())
@@ -61,13 +61,13 @@ public class JwtUtil {
         }
     }
 
-    public Long extractUserId(String token) {
+    public Integer extractUserId(String token) {
         Claims claims = Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
-        return Long.parseLong(claims.getSubject());
+        return Integer.parseInt(claims.getSubject());
     }
 
     public Claims extractAllClaims(String token) {

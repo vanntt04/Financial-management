@@ -4,9 +4,11 @@ import com.example.backend.dto.request.*;
 import com.example.backend.dto.response.ApiResponse;
 import com.example.backend.dto.response.AuthResponse;
 import com.example.backend.dto.response.UserResponse;
+import com.example.backend.entity.Currency;
 import com.example.backend.entity.OtpVerification;
 import com.example.backend.entity.User;
 import com.example.backend.exception.*;
+import com.example.backend.repository.CurrencyRepository;
 import com.example.backend.repository.OtpRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.service.AuthService;
@@ -31,6 +33,7 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final OtpRepository otpRepository;
+    private final CurrencyRepository currencyRepository;
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
@@ -49,29 +52,25 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public ApiResponse<Void> register(RegisterRequest request) {
-        // Validate confirmPassword
         if (!request.getPassword().equals(request.getConfirmPassword())) {
             throw new ApiException("Mật khẩu xác nhận không khớp", HttpStatus.BAD_REQUEST);
         }
 
-        // Check email exists
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new EmailAlreadyExistsException("Email đã được sử dụng");
         }
 
-        // Save user
+        Currency vnd = currencyRepository.findByCurrencyCode("VND")
+                .orElseThrow(() -> new ApiException("Không tìm thấy tiền tệ VND", HttpStatus.INTERNAL_SERVER_ERROR));
+
         User user = User.builder()
                 .email(request.getEmail())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName())
-                .phoneNumber(request.getPhoneNumber())
-                .isVerified(false)
-                .isActive(true)
-                .themePreference("light")
+                .baseCurrency(vnd)
                 .build();
         userRepository.save(user);
 
-        // Generate and save OTP
         String otpCode = otpUtil.generate();
         LocalDateTime now = LocalDateTime.now();
         OtpVerification otp = OtpVerification.builder()
@@ -85,7 +84,6 @@ public class AuthServiceImpl implements AuthService {
                 .build();
         otpRepository.save(otp);
 
-        // Send email
         emailService.sendRegisterOtpEmail(request.getEmail(), request.getFullName(), otpCode);
 
         return ApiResponse.success("Mã OTP đã gửi tới email. Vui lòng kiểm tra hộp thư.", null);
@@ -113,17 +111,12 @@ public class AuthServiceImpl implements AuthService {
             throw new ApiException("Mã OTP không đúng. Còn " + remaining + " lần thử", HttpStatus.BAD_REQUEST);
         }
 
-        // Mark OTP used
         otp.setUsed(true);
         otpRepository.save(otp);
 
-        // Activate user
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
-        user.setVerified(true);
-        userRepository.save(user);
 
-        // Generate tokens
         String accessToken = jwtUtil.generateAccessToken(user.getUserId());
         String refreshToken = jwtUtil.generateRefreshToken(user.getUserId());
 
@@ -136,12 +129,7 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException("Email không tồn tại trong hệ thống"));
 
-        if (user.isVerified()) {
-            throw new ApiException("Tài khoản đã được xác thực", HttpStatus.BAD_REQUEST);
-        }
-
         checkResendCooldown(request.getEmail(), OTP_TYPE_REGISTER);
-
         sendNewOtp(request.getEmail(), user.getFullName(), OTP_TYPE_REGISTER);
 
         return ApiResponse.success("Đã gửi lại mã OTP thành công", null);
@@ -150,33 +138,13 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public ApiResponse<AuthResponse> login(LoginRequest request) {
-        // Check email exists
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new ApiException("Email không tồn tại trong hệ thống", HttpStatus.NOT_FOUND));
 
-        // Check active
-        if (!user.isActive()) {
-            throw new ApiException("Tài khoản đã bị vô hiệu hóa, liên hệ hỗ trợ", HttpStatus.FORBIDDEN);
-        }
-
-        // Check password
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new ApiException("Mật khẩu không chính xác", HttpStatus.UNAUTHORIZED);
         }
 
-        // Check verified
-        if (!user.isVerified()) {
-            // Auto resend OTP (silently ignore cooldown error)
-            try {
-                checkResendCooldown(request.getEmail(), OTP_TYPE_REGISTER);
-                sendNewOtp(request.getEmail(), user.getFullName(), OTP_TYPE_REGISTER);
-            } catch (TooManyRequestsException ignored) {
-                // Cooldown active - still return the unverified message
-            }
-            throw new ApiException("Tài khoản chưa được xác thực. Mã OTP mới đã gửi tới email", HttpStatus.UNAUTHORIZED);
-        }
-
-        // Success
         String accessToken = jwtUtil.generateAccessToken(user.getUserId());
         String refreshToken = jwtUtil.generateRefreshToken(user.getUserId());
 
@@ -189,7 +157,7 @@ public class AuthServiceImpl implements AuthService {
             throw new ApiException("Refresh token không hợp lệ hoặc đã hết hạn", HttpStatus.UNAUTHORIZED);
         }
 
-        Long userId = jwtUtil.extractUserId(refreshToken);
+        Integer userId = jwtUtil.extractUserId(refreshToken);
         String newAccessToken = jwtUtil.generateAccessToken(userId);
 
         AuthResponse response = AuthResponse.builder()
@@ -245,13 +213,11 @@ public class AuthServiceImpl implements AuthService {
             throw new ApiException("Mã OTP không đúng. Còn " + remaining + " lần thử", HttpStatus.BAD_REQUEST);
         }
 
-        // Update password
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
 
-        // Mark OTP used
         otp.setUsed(true);
         otpRepository.save(otp);
 
@@ -317,8 +283,6 @@ public class AuthServiceImpl implements AuthService {
                 .userId(user.getUserId())
                 .fullName(user.getFullName())
                 .email(user.getEmail())
-                .phoneNumber(user.getPhoneNumber())
-                .themePreference(user.getThemePreference())
                 .build();
 
         return AuthResponse.builder()
