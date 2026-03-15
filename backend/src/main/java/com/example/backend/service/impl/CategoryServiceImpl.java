@@ -24,86 +24,75 @@ public class CategoryServiceImpl implements CategoryService {
     private final UserRepository userRepository;
 
     @Override
-    public List<CategoryResponse> getCategories(Long userId, String type) {
+    public List<CategoryResponse> getCategories(Integer userId, String type) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
+
         List<Category> categories;
         if (type != null && !type.isBlank()) {
-            categories = categoryRepository.findAllForUserByType(userId, type.toUpperCase());
+            categories = categoryRepository.findByUserAndCategoryTypeAndIsDeletedFalse(user, type.toUpperCase());
         } else {
-            categories = categoryRepository.findAllForUser(userId);
+            categories = categoryRepository.findByUserAndIsDeletedFalse(user);
         }
         return categories.stream().map(this::toResponse).toList();
     }
 
     @Override
     @Transactional
-    public CategoryResponse createCategory(Long userId, CategoryRequest request) {
-        boolean exists = categoryRepository.existsByUserUserIdAndCategoryNameAndCategoryType(
-                userId, request.getCategoryName(), request.getCategoryType().toUpperCase());
+    public CategoryResponse createCategory(Integer userId, CategoryRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
+
+        boolean exists = categoryRepository.existsByUserAndCategoryNameAndCategoryTypeAndIsDeletedFalse(
+                user, request.getCategoryName(), request.getCategoryType().toUpperCase());
         if (exists) {
             throw new ApiException("Danh mục này đã tồn tại", HttpStatus.CONFLICT);
         }
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
 
         Category category = Category.builder()
                 .user(user)
                 .categoryName(request.getCategoryName())
                 .categoryType(request.getCategoryType().toUpperCase())
-                .iconTag(request.getIconTag())
-                .isDefault(false)
+                .isDeleted(false)
                 .build();
 
-        Category saved = categoryRepository.save(category);
-        return toResponse(saved);
+        return toResponse(categoryRepository.save(category));
     }
 
     @Override
     @Transactional
-    public CategoryResponse updateCategory(Long userId, Long categoryId, CategoryRequest request) {
-        Category category = categoryRepository.findById(categoryId)
+    public CategoryResponse updateCategory(Integer userId, Integer categoryId, CategoryRequest request) {
+        Category category = categoryRepository.findByCategoryIdAndIsDeletedFalse(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy danh mục"));
 
-        if (category.isDefault()) {
-            throw new ApiException("Không thể chỉnh sửa danh mục mặc định", HttpStatus.FORBIDDEN);
-        }
-
-        if (category.getUser() == null || !category.getUser().getUserId().equals(userId)) {
+        if (!category.getUser().getUserId().equals(userId)) {
             throw new ApiException("Bạn không có quyền chỉnh sửa danh mục này", HttpStatus.FORBIDDEN);
         }
 
-        // Check name conflict (exclude current category)
         boolean nameConflict = categoryRepository
-                .existsByUserUserIdAndCategoryNameAndCategoryTypeAndCategoryIdNot(
-                        userId, request.getCategoryName(), category.getCategoryType(), categoryId);
+                .existsByUserAndCategoryNameAndCategoryTypeAndIsDeletedFalseAndCategoryIdNot(
+                        category.getUser(), request.getCategoryName(), category.getCategoryType(), categoryId);
         if (nameConflict) {
             throw new ApiException("Tên danh mục đã tồn tại", HttpStatus.CONFLICT);
         }
 
         category.setCategoryName(request.getCategoryName());
-        if (request.getIconTag() != null) {
-            category.setIconTag(request.getIconTag());
-        }
 
-        Category updated = categoryRepository.save(category);
-        return toResponse(updated);
+        return toResponse(categoryRepository.save(category));
     }
 
     @Override
     @Transactional
-    public void deleteCategory(Long userId, Long categoryId) {
-        Category category = categoryRepository.findById(categoryId)
+    public void deleteCategory(Integer userId, Integer categoryId) {
+        Category category = categoryRepository.findByCategoryIdAndIsDeletedFalse(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy danh mục"));
 
-        if (category.isDefault()) {
-            throw new ApiException("Không thể xóa danh mục mặc định", HttpStatus.FORBIDDEN);
-        }
-
-        if (category.getUser() == null || !category.getUser().getUserId().equals(userId)) {
+        if (!category.getUser().getUserId().equals(userId)) {
             throw new ApiException("Bạn không có quyền xóa danh mục này", HttpStatus.FORBIDDEN);
         }
 
-        categoryRepository.delete(category);
+        category.setDeleted(true);
+        categoryRepository.save(category);
     }
 
     private CategoryResponse toResponse(Category category) {
@@ -111,8 +100,7 @@ public class CategoryServiceImpl implements CategoryService {
                 .categoryId(category.getCategoryId())
                 .categoryName(category.getCategoryName())
                 .categoryType(category.getCategoryType())
-                .iconTag(category.getIconTag())
-                .isDefault(category.isDefault())
+                .updatedAt(category.getUpdatedAt())
                 .build();
     }
 }

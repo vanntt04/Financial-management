@@ -24,10 +24,4 @@ public class RegisterRequest {
 
     @NotBlank(message = "Xác nhận mật khẩu không được để trống")
     private String confirmPassword;
-
-    @Pattern(
-        regexp = "^(0[3|5|7|8|9])+([0-9]{8})$",
-        message = "Số điện thoại không hợp lệ"
-    )
-    private String phoneNumber;
 }
