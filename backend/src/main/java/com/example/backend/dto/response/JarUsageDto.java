@@ -9,9 +9,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserResponse {
-    private Integer userId;
-    private String fullName;
-    private String email;
-    private String phone;
+public class JarUsageDto {
+    private String name;
+    private double spent;
+    private double budget;
 }

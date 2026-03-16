@@ -9,9 +9,9 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserResponse {
-    private Integer userId;
-    private String fullName;
-    private String email;
-    private String phone;
+public class DaySummaryDto {
+    private int day;
+    private double totalIncome;
+    private double totalExpense;
+    private boolean hasTransaction;
 }

@@ -5,13 +5,14 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserResponse {
-    private Integer userId;
-    private String fullName;
-    private String email;
-    private String phone;
+public class CalendarReportDto {
+    private int month;
+    private int year;
+    private List<DaySummaryDto> days;
 }
