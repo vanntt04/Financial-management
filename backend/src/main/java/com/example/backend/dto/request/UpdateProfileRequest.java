@@ -16,6 +16,4 @@ public class UpdateProfileRequest {
     @Email(message = "Email không hợp lệ")
     private String email;
 
-    @Size(max = 20)
-    private String phone;
 }
