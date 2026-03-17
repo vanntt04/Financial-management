@@ -20,5 +20,7 @@ public interface AuthService {
 
     ApiResponse<Void> forgotPassword(ForgotPasswordRequest request);
 
+    ApiResponse<Void> verifyForgotOtp(VerifyOtpRequest request);
+
     ApiResponse<Void> resetPassword(ResetPasswordRequest request);
 }

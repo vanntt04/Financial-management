@@ -8,6 +8,8 @@ import 'screens/dashboard/home_dashboard_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/auth/forget_password_screen.dart';
+import 'screens/auth/verify_forgot_otp_screen.dart';
+import 'screens/auth/reset_password_screen.dart';
 import 'screens/auth/change_password_screen.dart';
 
 // 3. Nhóm Profile
@@ -41,7 +43,9 @@ class AppRoutes {
 
   static const String login = '/login';
   static const String register = '/register';
-static const String forgetPassword = '/forget-password';
+  static const String forgetPassword = '/forget-password';
+  static const String verifyForgotOtp = '/verify-forgot-otp';
+  static const String resetPassword = '/reset-password';
   static const String changePassword = '/change-password';
 
   static const String profile = '/profile';
@@ -71,6 +75,10 @@ static const String forgetPassword = '/forget-password';
       login: (context) => const LoginScreen(),
       register: (context) => const RegisterScreen(),
       forgetPassword: (context) => const ForgetPasswordScreen(),
+      verifyForgotOtp: (context) =>
+          const VerifyForgotOtpScreen(email: ''),
+      resetPassword: (context) =>
+          const ResetPasswordScreen(email: '', otpCode: ''),
       changePassword: (context) => const ChangePasswordScreen(),
 
       profile: (context) => const UserProfileScreen(),

@@ -37,9 +37,6 @@ public class UserServiceImpl implements UserService {
 
         user.setFullName(request.getFullName());
         user.setEmail(request.getEmail());
-        user.setPhone(request.getPhone() != null && !request.getPhone().isBlank()
-                ? request.getPhone()
-                : null);
         userRepository.save(user);
 
         return ApiResponse.success("Cập nhật hồ sơ thành công", toUserResponse(user));
@@ -59,7 +56,6 @@ public class UserServiceImpl implements UserService {
                 .userId(user.getUserId())
                 .fullName(user.getFullName())
                 .email(user.getEmail())
-                .phone(user.getPhone())
                 .build();
     }
 }

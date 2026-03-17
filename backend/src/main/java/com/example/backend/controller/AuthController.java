@@ -57,6 +57,11 @@ public class AuthController {
         return ResponseEntity.ok(authService.forgotPassword(request));
     }
 
+    @PostMapping("/verify-forgot-otp")
+    public ResponseEntity<ApiResponse<Void>> verifyForgotOtp(@Valid @RequestBody VerifyOtpRequest request) {
+        return ResponseEntity.ok(authService.verifyForgotOtp(request));
+    }
+
     @PostMapping("/reset-password")
     public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         return ResponseEntity.ok(authService.resetPassword(request));

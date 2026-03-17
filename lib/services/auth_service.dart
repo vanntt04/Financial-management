@@ -64,7 +64,20 @@ class AuthService {
     return body['message'] as String? ?? 'Đã gửi lại OTP';
   }
 
-  /// Yêu cầu đặt lại mật khẩu (gửi email chứa link/token).
+  /// Xác thực OTP quên mật khẩu (chưa đổi mật khẩu).
+  static Future<String> verifyForgotOtp({
+    required String email,
+    required String otpCode,
+  }) async {
+    final body = await ApiClient.post(ApiConstants.verifyForgotOtp, {
+      'email': email,
+      'otpCode': otpCode,
+      'otpType': 'FORGOT_PASSWORD',
+    });
+    return body['message'] as String? ?? 'Xác nhận thành công';
+  }
+
+  /// Yêu cầu đặt lại mật khẩu (gửi OTP về email).
   static Future<String> forgotPassword({required String email}) async {
     final body =
         await ApiClient.post(ApiConstants.forgotPassword, {'email': email});
@@ -72,14 +85,16 @@ class AuthService {
         'Nếu email tồn tại, hướng dẫn đặt lại mật khẩu sẽ được gửi.';
   }
 
-  /// Đặt lại mật khẩu bằng token (ví dụ từ email).
+  /// Đặt lại mật khẩu bằng OTP.
   static Future<String> resetPassword({
-    required String token,
+    required String email,
+    required String otpCode,
     required String newPassword,
     required String confirmPassword,
   }) async {
     final body = await ApiClient.post(ApiConstants.resetPassword, {
-      'token': token,
+      'email': email,
+      'otpCode': otpCode,
       'newPassword': newPassword,
       'confirmPassword': confirmPassword,
     });

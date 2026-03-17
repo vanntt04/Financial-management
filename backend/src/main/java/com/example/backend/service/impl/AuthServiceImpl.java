@@ -189,6 +189,32 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
+    public ApiResponse<Void> verifyForgotOtp(VerifyOtpRequest request) {
+        OtpVerification otp = otpRepository
+                .findTopByTargetAndOtpTypeAndIsUsedFalseOrderByCreatedAtDesc(request.getEmail(), OTP_TYPE_FORGOT)
+                .orElseThrow(() -> new ApiException("Không tìm thấy yêu cầu đặt lại mật khẩu", HttpStatus.BAD_REQUEST));
+
+        if (otp.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new ApiException("Mã OTP đã hết hạn, vui lòng gửi lại", HttpStatus.BAD_REQUEST);
+        }
+
+        if (otp.getAttemptCount() >= MAX_ATTEMPT) {
+            throw new ApiException("Đã nhập sai quá nhiều lần, yêu cầu OTP mới", HttpStatus.BAD_REQUEST);
+        }
+
+        if (!otp.getOtpCode().equals(request.getOtpCode())) {
+            otp.setAttemptCount(otp.getAttemptCount() + 1);
+            otpRepository.save(otp);
+            int remaining = MAX_ATTEMPT - otp.getAttemptCount();
+            throw new ApiException("Mã OTP không đúng. Còn " + remaining + " lần thử", HttpStatus.BAD_REQUEST);
+        }
+
+        // OTP hợp lệ — KHÔNG mark isUsed ở đây, chờ reset-password xử lý
+        return ApiResponse.success("OTP hợp lệ", null);
+    }
+
+    @Override
+    @Transactional
     public ApiResponse<Void> resetPassword(ResetPasswordRequest request) {
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
             throw new ApiException("Mật khẩu xác nhận không khớp", HttpStatus.BAD_REQUEST);
@@ -283,7 +309,6 @@ public class AuthServiceImpl implements AuthService {
                 .userId(user.getUserId())
                 .fullName(user.getFullName())
                 .email(user.getEmail())
-                .phone(user.getPhone())
                 .build();
 
         return AuthResponse.builder()
