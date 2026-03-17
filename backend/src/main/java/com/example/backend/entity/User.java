@@ -30,6 +30,9 @@ public class User {
     @Column(name = "full_name", length = 100, nullable = false)
     private String fullName;
 
+    @Column(name = "phone", length = 20)
+    private String phone;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "base_currency_id", nullable = false)
     private Currency baseCurrency;
