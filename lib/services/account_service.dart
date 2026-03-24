@@ -15,15 +15,19 @@ class AccountService {
     return [];
   }
 
-
-
-
+  /// Lấy chi tiết một hũ/tài khoản theo ID.
+  static Future<AccountModel> getAccountById(int id) async {
+    final body = await ApiClient.get('${ApiConstants.accounts}/$id');
+    final data = body['data'] as Map<String, dynamic>;
+    return AccountModel.fromJson(data);
+  }
 
   /// Tạo hũ/tài khoản mới.
   static Future<AccountModel> createAccount({
     required String accountName,
     required double balance,
-    required int currencyId,
+    required String type, // 'SPENDING' hoặc 'SAVING'
+    int? currencyId,
     double? allocationPercentage,
     bool isGoalActive = false,
     double? targetAmount,
@@ -34,7 +38,8 @@ class AccountService {
       {
         'name': accountName,
         'currentAmount': balance,
-        'currencyId': currencyId,
+        'type': type,
+        if (currencyId != null) 'currencyId': currencyId,
         if (allocationPercentage != null) 'percentage': allocationPercentage,
         'isGoalActive': isGoalActive,
         if (targetAmount != null) 'targetAmount': targetAmount,
@@ -46,10 +51,6 @@ class AccountService {
     return AccountModel.fromJson(data);
   }
 
-
-
-
-
   /// Cập nhật thông tin hũ/tài khoản.
   static Future<AccountModel> updateAccount(
     int id,
@@ -59,8 +60,6 @@ class AccountService {
     final respData = body['data'] as Map<String, dynamic>;
     return AccountModel.fromJson(respData);
   }
-
-
 
   /// Xóa hũ/tài khoản (soft delete).
   static Future<void> deleteAccount(int id) async {
