@@ -1,12 +1,13 @@
+// lib/screens/dashboard/main_layout.dart
 import 'package:flutter/material.dart';
-import 'home_dashboard_screen.dart';
-import '../transaction/transaction_list_screen.dart';
-import '../report/statistics_report_screen.dart';
-import '../settings/settings_screen.dart';
+import 'package:financial_management/screens/dashboard/home_dashboard_screen.dart';
+import 'package:financial_management/screens/transaction/transaction_list_screen.dart';
+import 'package:financial_management/screens/report/statistics_report_screen.dart';
+import 'package:financial_management/screens/goal/financial_goals_screen.dart';
+import 'package:financial_management/screens/settings/settings_screen.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
-
   @override
   State<MainLayout> createState() => _MainLayoutState();
 }
@@ -14,11 +15,12 @@ class MainLayout extends StatefulWidget {
 class _MainLayoutState extends State<MainLayout> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = [
-    const HomeDashboardScreen(),
-    const TransactionListScreen(),
-    const StatisticsReportScreen(),
-    const SettingsScreen(),
+  final _pages = const [
+    HomeDashboardScreen(),
+    TransactionListScreen(),
+    StatisticsReportScreen(),
+    FinancialGoalsScreen(),
+    SettingsScreen(),
   ];
 
   @override
@@ -26,46 +28,43 @@ class _MainLayoutState extends State<MainLayout> {
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: _pages),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.pushNamed(context, '/add-transaction'),
-        backgroundColor: scheme.primary,
-        foregroundColor: Colors.white,
-        elevation: 4,
-        child: const Icon(Icons.add, size: 28),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
-        onDestinationSelected: (index) => setState(() => _currentIndex = index),
+        onDestinationSelected: (i) => setState(() => _currentIndex = i),
         backgroundColor: Colors.white,
-        elevation: 0,
-        shadowColor: Colors.black26,
-        indicatorColor: scheme.primaryContainer,
-        height: 64,
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        indicatorColor: scheme.primary.withOpacity(0.15),
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Trang chủ',
-          ),
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home_rounded),
+              label: 'Trang chủ'),
           NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long),
-            label: 'Giao dịch',
-          ),
+              icon: Icon(Icons.receipt_long_outlined),
+              selectedIcon: Icon(Icons.receipt_long_rounded),
+              label: 'Giao dịch'),
           NavigationDestination(
-            icon: Icon(Icons.pie_chart_outline),
-            selectedIcon: Icon(Icons.pie_chart),
-            label: 'Báo cáo',
-          ),
+              icon: Icon(Icons.bar_chart_outlined),
+              selectedIcon: Icon(Icons.bar_chart_rounded),
+              label: 'Báo cáo'),
           NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
-            label: 'Cài đặt',
-          ),
+              icon: Icon(Icons.flag_outlined),
+              selectedIcon: Icon(Icons.flag_rounded),
+              label: 'Mục tiêu'),
+          NavigationDestination(
+              icon: Icon(Icons.settings_outlined),
+              selectedIcon: Icon(Icons.settings_rounded),
+              label: 'Cài đặt'),
         ],
       ),
+      floatingActionButton: _currentIndex <= 1
+          ? FloatingActionButton(
+              onPressed: () =>
+                  Navigator.pushNamed(context, '/add-transaction'),
+              backgroundColor: scheme.primary,
+              foregroundColor: Colors.white,
+              child: const Icon(Icons.add_rounded, size: 28),
+            )
+          : null,
     );
   }
 }

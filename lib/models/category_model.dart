@@ -1,25 +1,47 @@
+// lib/models/category_model.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class CategoryModel {
-  final int categoryId;
-  final String categoryName;
-  final String categoryType; // INCOME | EXPENSE
+  final String id;
+  final String name;
+  final String type; // INCOME | EXPENSE
+  final String? icon;
+  final String? color;
+  final bool isDefault;
+  final DateTime? createdAt;
 
   CategoryModel({
-    required this.categoryId,
-    required this.categoryName,
-    required this.categoryType,
+    required this.id,
+    required this.name,
+    required this.type,
+    this.icon,
+    this.color,
+    this.isDefault = false,
+    this.createdAt,
   });
 
-  factory CategoryModel.fromJson(Map<String, dynamic> json) {
-    return CategoryModel(
-      categoryId:   json['categoryId']   as int,
-      categoryName: json['categoryName'] as String,
-      categoryType: json['categoryType'] as String,
-    );
-  }
+  bool get isIncome => type == 'INCOME';
+  bool get isExpense => type == 'EXPENSE';
 
-  Map<String, dynamic> toJson() => {
-        'categoryId':   categoryId,
-        'categoryName': categoryName,
-        'categoryType': categoryType,
+  factory CategoryModel.fromFirestore(Map<String, dynamic> d, String id) =>
+      CategoryModel(
+        id: id,
+        name: d['name'] as String,
+        type: d['type'] as String,
+        icon: d['icon'] as String?,
+        color: d['color'] as String?,
+        isDefault: d['isDefault'] as bool? ?? false,
+        createdAt: (d['createdAt'] as Timestamp?)?.toDate(),
+      );
+
+  Map<String, dynamic> toMap() => {
+        'name': name,
+        'type': type,
+        if (icon != null) 'icon': icon,
+        if (color != null) 'color': color,
+        'isDefault': isDefault,
       };
 }
+
+// lib/models/account_model.dart — included in same file for brevity
+// (split into separate files in your project)

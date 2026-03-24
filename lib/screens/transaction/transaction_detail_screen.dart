@@ -1,72 +1,104 @@
+// lib/screens/transaction/transaction_detail_screen.dart
 import 'package:flutter/material.dart';
-import '../../utils/currency_formatter.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
+import 'package:financial_management/models/transaction_model.dart';
+import 'package:financial_management/providers/finance_provider.dart';
+import 'package:financial_management/routes.dart';
+import 'package:financial_management/utils/currency_formatter.dart';
 
 class TransactionDetailScreen extends StatelessWidget {
   const TransactionDetailScreen({super.key});
-
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final bool isExpense = true;
-    final color = isExpense ? Colors.red.shade400 : Colors.green.shade600;
+    final tx = ModalRoute.of(context)!.settings.arguments as TransactionModel;
+
+    final isIncome = tx.isIncome;
+    final color = isIncome ? Colors.green : Colors.red;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Chi tiết giao dịch', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Chi tiết giao dịch',
+            style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
-          IconButton(icon: const Icon(Icons.edit_outlined), onPressed: () {}),
-          IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red), onPressed: () {}),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            onPressed: () => _confirmDelete(context, tx),
+          ),
         ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // Amount hero card
+            // Amount card
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(
-                color: Colors.white,
+                gradient: LinearGradient(
+                  colors: [color, color.withOpacity(0.7)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, 3))],
               ),
               child: Column(
                 children: [
                   Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-                    child: Icon(Icons.restaurant, size: 32, color: color),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isIncome
+                          ? Icons.arrow_downward_rounded
+                          : Icons.arrow_upward_rounded,
+                      color: Colors.white,
+                      size: 32,
+                    ),
                   ),
-                  const SizedBox(height: 14),
-                  const Text('Ăn trưa', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
+                  Text(isIncome ? 'Thu nhập' : 'Chi tiêu',
+                      style: const TextStyle(
+                          color: Colors.white70, fontSize: 14)),
                   Text(
-                    '-${formatCurrency(50000)}',
-                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: color),
+                    '${isIncome ? '+' : '-'}${CurrencyFormatter.format(tx.amount)}',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
-
-            // Details card
+            const SizedBox(height: 20),
+            // Info card
             Container(
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2))],
               ),
               child: Column(
                 children: [
-                  _buildDetailRow(Icons.calendar_today_outlined, 'Ngày giao dịch', '13/03/2026 12:30', scheme),
-                  _buildDivider(),
-                  _buildDetailRow(Icons.account_balance_wallet_outlined, 'Quỹ / Hũ', 'Chi tiêu thiết yếu', scheme),
-                  _buildDivider(),
-                  _buildDetailRow(Icons.category_outlined, 'Danh mục', 'Ăn uống', scheme),
-                  _buildDivider(),
-                  _buildDetailRow(Icons.notes_outlined, 'Ghi chú', 'Ăn bún chả cùng đồng nghiệp', scheme),
+                  _row('Danh mục', tx.categoryName,
+                      icon: Icons.category_outlined),
+                  _divider(),
+                  _row('Ngày',
+                      DateFormat('EEEE, dd/MM/yyyy', 'vi').format(tx.date),
+                      icon: Icons.calendar_today_outlined),
+                  if (tx.accountName != null) ...[
+                    _divider(),
+                    _row('Hũ tiền', tx.accountName!,
+                        icon: Icons.savings_outlined),
+                  ],
+                  if (tx.note != null && tx.note!.isNotEmpty) ...[
+                    _divider(),
+                    _row('Ghi chú', tx.note!,
+                        icon: Icons.notes_outlined),
+                  ],
                 ],
               ),
             ),
@@ -76,19 +108,55 @@ class TransactionDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailRow(IconData icon, String label, String value, ColorScheme scheme) {
+  Widget _row(String label, String value, {required IconData icon}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: scheme.primary),
+          Icon(icon, size: 20, color: Colors.grey.shade400),
           const SizedBox(width: 12),
-          Expanded(child: Text(label, style: TextStyle(color: Colors.grey.shade500, fontSize: 13))),
-          Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label,
+                  style: TextStyle(
+                      fontSize: 12, color: Colors.grey.shade500)),
+              const SizedBox(height: 2),
+              Text(value,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 15)),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildDivider() => Divider(height: 1, indent: 48, color: Colors.grey.shade100);
+  Widget _divider() =>
+      Divider(color: Colors.grey.shade100, height: 1);
+
+  Future<void> _confirmDelete(
+      BuildContext context, TransactionModel tx) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Xóa giao dịch?'),
+        content: const Text(
+            'Giao dịch này sẽ bị xóa vĩnh viễn và số dư hũ sẽ được hoàn lại.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Hủy')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Xóa')),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      await context.read<FinanceProvider>().deleteTransaction(tx);
+      if (context.mounted) Navigator.pop(context);
+    }
+  }
 }

@@ -1,340 +1,426 @@
+// lib/screens/dashboard/home_dashboard_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../providers/finance_provider.dart';
-import '../../services/api_service.dart';
-import '../account/add_edit_account_screen.dart';
+import 'package:intl/intl.dart';
+import 'package:financial_management/providers/auth_provider.dart';
+import 'package:financial_management/providers/finance_provider.dart';
+import 'package:financial_management/models/account_model.dart';
+import 'package:financial_management/models/transaction_model.dart';
+import 'package:financial_management/routes.dart';
+import 'package:financial_management/utils/currency_formatter.dart';
 
-class HomeDashboardScreen extends StatefulWidget {
+class HomeDashboardScreen extends StatelessWidget {
   const HomeDashboardScreen({super.key});
 
   @override
-  State<HomeDashboardScreen> createState() => _HomeDashboardScreenState();
-}
-
-class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
-
-  @override
-  void initState() {
-    super.initState();
-    // Load lần đầu nếu chưa có data
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = context.read<FinanceProvider>();
-      if (provider.dashboard == null) {
-        provider.loadDashboard();
-      }
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    // Consumer tự rebuild khi Provider thay đổi — không cần setState
-    return Consumer<FinanceProvider>(
-      builder: (context, provider, _) {
-        return Scaffold(
-          appBar: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            title: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Xin chào,', style: TextStyle(fontSize: 14, color: Colors.grey)),
-                Text('Người dùng',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              ],
+    final auth = context.watch<AuthProvider>();
+    final finance = context.watch<FinanceProvider>();
+    final scheme = Theme.of(context).colorScheme;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Xin chào,',
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
+            Text(auth.displayName,
+                style: const TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: CircleAvatar(
+              backgroundColor: scheme.primary.withOpacity(0.1),
+              backgroundImage: auth.photoURL != null
+                  ? NetworkImage(auth.photoURL!)
+                  : null,
+              child: auth.photoURL == null
+                  ? Icon(Icons.person, size: 20, color: scheme.primary)
+                  : null,
             ),
-            actions: [
-              IconButton(
-                icon: const CircleAvatar(child: Icon(Icons.person, size: 20)),
-                onPressed: () => Navigator.pushNamed(context, '/profile'),
+            onPressed: () =>
+                Navigator.pushNamed(context, AppRoutes.profile),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: () async {},
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 8),
+              _TotalBalanceCard(
+                  balance: finance.totalBalance, scheme: scheme),
+              const SizedBox(height: 16),
+              _MonthSummaryRow(
+                  income: finance.monthlyIncome,
+                  expense: finance.monthlyExpense),
+              const SizedBox(height: 24),
+              _SectionHeader(
+                title: 'Phân bổ quỹ (Jars)',
+                action: IconButton(
+                  icon: Icon(Icons.add_circle_outline,
+                      color: scheme.primary),
+                  tooltip: 'Thêm hũ',
+                  onPressed: () => Navigator.pushNamed(
+                      context, AppRoutes.addEditAccount),
+                ),
               ),
-              const SizedBox(width: 8),
+              if (finance.accounts.isEmpty)
+                _EmptyJars(scheme: scheme)
+              else
+                ...finance.accounts.map((a) => _JarItem(account: a)),
+              if (finance.recentTransactions.isNotEmpty) ...[
+                const SizedBox(height: 24),
+                _SectionHeader(
+                  title: 'Giao dịch gần đây',
+                  action: TextButton(
+                    onPressed: () => Navigator.pushNamed(
+                        context, AppRoutes.transactionList),
+                    child: const Text('Xem tất cả'),
+                  ),
+                ),
+                ...finance.recentTransactions
+                    .map((t) => _RecentTxTile(tx: t)),
+              ],
+              const SizedBox(height: 80),
             ],
           ),
-          body: provider.isDashboardLoading
-              ? const Center(child: CircularProgressIndicator())
-              : provider.dashboardError != null
-              ? _buildError(provider)
-              : RefreshIndicator(
-            onRefresh: () => provider.loadDashboard(),
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 16),
-                  _buildTotalBalanceCard(context, provider.dashboard?.totalBalance ?? 0),
-                  const SizedBox(height: 16),
-                  _buildMonthSummary(provider),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Phân bổ quỹ (Jars)',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                      IconButton(
-                        onPressed: () => _openAddJar(context, provider),
-                        icon: const Icon(Icons.add_circle_outline),
-                        tooltip: 'Thêm hũ mới',
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  if ((provider.dashboard?.accounts ?? []).isEmpty)
-                    _buildEmptyJars(context)
-                  else
-                    ...(provider.dashboard?.accounts ?? [])
-                        .map((a) => _buildJarItem(a, context, provider)),
-                  if ((provider.dashboard?.recentTransactions ?? []).isNotEmpty) ...[
-                    const SizedBox(height: 24),
-                    const Text('Giao dịch gần đây',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 12),
-                    ...(provider.dashboard?.recentTransactions ?? []).map(_buildRecentTx),
-                  ],
-                  const SizedBox(height: 24),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+        ),
+      ),
     );
   }
+}
 
-  // ── Giữ nguyên UI gốc 100% ───────────────────────────────
+// ── Sub-widgets ──────────────────────────────────────────────────────────────
 
-  Widget _buildError(FinanceProvider provider) => Center(
-    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      const Icon(Icons.error_outline, size: 48, color: Colors.red),
-      const SizedBox(height: 12),
-      Text(provider.dashboardError ?? '',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.grey.shade600)),
-      const SizedBox(height: 12),
-      ElevatedButton.icon(
-          onPressed: () => provider.loadDashboard(),
-          icon: const Icon(Icons.refresh),
-          label: const Text('Thử lại')),
-    ]),
-  );
-
-  Widget _buildTotalBalanceCard(BuildContext context, double balance) {
+class _TotalBalanceCard extends StatelessWidget {
+  const _TotalBalanceCard(
+      {required this.balance, required this.scheme});
+  final double balance;
+  final ColorScheme scheme;
+  @override
+  Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            Theme.of(context).colorScheme.primary,
-            Theme.of(context).colorScheme.secondary,
-          ],
+          colors: [scheme.primary, scheme.primary.withOpacity(0.7)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
+              color: scheme.primary.withOpacity(0.3),
+              blurRadius: 16,
+              offset: const Offset(0, 6))
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Tổng tài sản',
-              style: TextStyle(color: Colors.white70, fontSize: 14)),
+          Text('Tổng số dư',
+              style: TextStyle(
+                  color: scheme.onPrimary.withOpacity(0.8), fontSize: 14)),
           const SizedBox(height: 8),
-          Text(
-            '${_formatAmount(balance)} VNĐ',
-            style: const TextStyle(
-                color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+          Text(CurrencyFormatter.format(balance),
+              style: TextStyle(
+                  color: scheme.onPrimary,
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () =>
+                      Navigator.pushNamed(context, AppRoutes.addTransaction),
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('Thêm giao dịch'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: scheme.onPrimary,
+                    side: BorderSide(color: scheme.onPrimary.withOpacity(0.5)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () =>
+                      Navigator.pushNamed(context, AppRoutes.statisticsReports),
+                  icon: const Icon(Icons.bar_chart, size: 16),
+                  label: const Text('Báo cáo'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: scheme.onPrimary,
+                    side: BorderSide(color: scheme.onPrimary.withOpacity(0.5)),
+                  ),
+                ),
+              ),
+            ],
+          )
+        ],
+      ),
+    );
+  }
+}
+
+class _MonthSummaryRow extends StatelessWidget {
+  const _MonthSummaryRow({required this.income, required this.expense});
+  final double income, expense;
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+            child: _SummaryChip(
+                label: 'Thu nhập',
+                amount: income,
+                color: Colors.green,
+                icon: Icons.arrow_downward_rounded)),
+        const SizedBox(width: 12),
+        Expanded(
+            child: _SummaryChip(
+                label: 'Chi tiêu',
+                amount: expense,
+                color: Colors.red,
+                icon: Icons.arrow_upward_rounded)),
+      ],
+    );
+  }
+}
+
+class _SummaryChip extends StatelessWidget {
+  const _SummaryChip(
+      {required this.label,
+      required this.amount,
+      required this.color,
+      required this.icon});
+  final String label;
+  final double amount;
+  final Color color;
+  final IconData icon;
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2))
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration:
+                BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+            child: Icon(icon, color: color, size: 18),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: TextStyle(
+                        fontSize: 11, color: Colors.grey.shade500)),
+                const SizedBox(height: 2),
+                FittedBox(
+                  child: Text(CurrencyFormatter.format(amount),
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: color)),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildMonthSummary(FinanceProvider provider) {
-    return Row(children: [
-      Expanded(child: _summaryBox(
-          'Thu tháng này',
-          provider.dashboard?.monthlyIncome ?? 0,
-          Colors.green,
-          Icons.arrow_downward)),
-      const SizedBox(width: 12),
-      Expanded(child: _summaryBox(
-          'Chi tháng này',
-          provider.dashboard?.monthlyExpense ?? 0,
-          Colors.red,
-          Icons.arrow_upward)),
-    ]);
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title, this.action});
+  final String title;
+  final Widget? action;
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(title,
+            style: const TextStyle(
+                fontSize: 17, fontWeight: FontWeight.bold)),
+        if (action != null) action!,
+      ],
+    );
   }
+}
 
-  Widget _summaryBox(String label, double amount, Color color, IconData icon) =>
-      Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
-        ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Icon(icon, size: 14, color: color),
-            const SizedBox(width: 4),
-            Text(label, style: TextStyle(fontSize: 12, color: color)),
-          ]),
-          const SizedBox(height: 6),
-          Text('${_formatAmount(amount)} đ',
-              style: TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.bold, color: color)),
-        ]),
-      );
-
-  Widget _buildJarItem(ApiAccount account, BuildContext context, FinanceProvider provider) {
-    final isSaving = account.isGoalActive;
-    return GestureDetector(
-      onTap: () => _openEditJar(context, account, provider),
-      child: Card(
-      elevation: 0,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
+class _EmptyJars extends StatelessWidget {
+  const _EmptyJars({required this.scheme});
+  final ColorScheme scheme;
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.grey.shade200),
       ),
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(children: [
+      child: Column(
+        children: [
+          Icon(Icons.savings_outlined, size: 40, color: Colors.grey.shade300),
+          const SizedBox(height: 8),
+          Text('Chưa có hũ tiền nào',
+              style: TextStyle(color: Colors.grey.shade500)),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: () =>
+                Navigator.pushNamed(context, AppRoutes.addEditAccount),
+            child: const Text('Tạo hũ tiền đầu tiên'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _JarItem extends StatelessWidget {
+  const _JarItem({required this.account});
+  final AccountModel account;
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: isSaving ? Colors.green.shade50 : Colors.blue.shade50,
-              borderRadius: BorderRadius.circular(12),
+              color: scheme.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(Icons.savings_rounded, color: scheme.primary, size: 22),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(account.name,
+                    style: const TextStyle(fontWeight: FontWeight.w600)),
+                if (account.isGoalActive && account.targetAmount != null) ...[
+                  const SizedBox(height: 6),
+                  LinearProgressIndicator(
+                    value: account.progress,
+                    backgroundColor: Colors.grey.shade100,
+                    color: scheme.primary,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${(account.progress * 100).toStringAsFixed(0)}% — mục tiêu ${CurrencyFormatter.format(account.targetAmount!)}',
+                    style: TextStyle(
+                        fontSize: 11, color: Colors.grey.shade500),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Text(CurrencyFormatter.format(account.balance),
+              style: TextStyle(
+                  fontWeight: FontWeight.bold, color: scheme.primary)),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecentTxTile extends StatelessWidget {
+  const _RecentTxTile({required this.tx});
+  final TransactionModel tx;
+  @override
+  Widget build(BuildContext context) {
+    final isIncome = tx.isIncome;
+    final color = isIncome ? Colors.green : Colors.red;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              shape: BoxShape.circle,
             ),
             child: Icon(
-              isSaving ? Icons.savings_outlined : Icons.account_balance_wallet_outlined,
-              color: isSaving ? Colors.green : Colors.blue,
+              isIncome
+                  ? Icons.arrow_downward_rounded
+                  : Icons.arrow_upward_rounded,
+              color: color,
+              size: 18,
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(account.accountName,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
-              const SizedBox(height: 4),
-              if (account.allocationPercentage != null)
-                Text('${account.allocationPercentage!.toInt()}% tổng quỹ',
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
-              if (isSaving && account.targetAmount != null)
-                Text('Mục tiêu: ${_formatAmount(account.targetAmount!)} đ',
-                    style: TextStyle(color: Colors.green.shade600, fontSize: 12)),
-            ]),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(tx.categoryName,
+                    style: const TextStyle(fontWeight: FontWeight.w600)),
+                if (tx.note != null && tx.note!.isNotEmpty)
+                  Text(tx.note!,
+                      style: TextStyle(
+                          fontSize: 12, color: Colors.grey.shade500),
+                      overflow: TextOverflow.ellipsis),
+              ],
+            ),
           ),
-          Text('${_formatAmount(account.balance)} đ',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(width: 8),
-          Icon(Icons.edit_outlined, size: 16, color: Colors.grey.shade400),
-        ]),
-      ),
-    ),
-    );
-  }
-
-  Widget _buildRecentTx(ApiTransaction tx) => ListTile(
-    contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 2),
-    leading: CircleAvatar(
-      backgroundColor: tx.isExpense ? Colors.red.shade50 : Colors.green.shade50,
-      child: Icon(_iconFor(tx.categoryName), size: 20,
-          color: tx.isExpense ? Colors.red : Colors.green),
-    ),
-    title: Text(tx.categoryName,
-        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-    subtitle: Text(
-      '${tx.accountName ?? ''} • ${tx.transactionDate.day}/${tx.transactionDate.month}',
-      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-    ),
-    trailing: Text(
-      '${tx.isExpense ? '-' : '+'}${_formatAmount(tx.amount)} đ',
-      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14,
-          color: tx.isExpense ? Colors.red : Colors.green),
-    ),
-  );
-
-  String _formatAmount(double amount) => amount
-      .toStringAsFixed(0)
-      .replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
-
-  IconData _iconFor(String name) {
-    switch (name.toLowerCase()) {
-      case 'ăn uống': return Icons.restaurant;
-      case 'mua sắm': return Icons.shopping_cart;
-      case 'nhà cửa': return Icons.home;
-      case 'học tập': return Icons.school;
-      case 'di chuyển': return Icons.directions_car;
-      case 'giải trí': return Icons.movie;
-      case 'y tế': return Icons.health_and_safety;
-      case 'lương': return Icons.attach_money;
-      case 'thưởng': return Icons.card_giftcard;
-      case 'tiền lãi': return Icons.savings;
-      default: return Icons.swap_horiz;
-    }
-  }
-  // ── Jar helpers ──────────────────────────────────────────
-
-  Widget _buildEmptyJars(BuildContext context) {
-    return GestureDetector(
-      onTap: () => _openAddJar(context, context.read<FinanceProvider>()),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-              style: BorderStyle.solid,
-              width: 1.5),
-        ),
-        child: Column(children: [
-          Icon(Icons.add_circle_outline,
-              size: 40,
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.5)),
-          const SizedBox(height: 8),
-          Text('Chưa có hũ nào',
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 14)),
-          const SizedBox(height: 4),
-          Text('Nhấn để thêm hũ đầu tiên',
-              style: TextStyle(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600)),
-        ]),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${isIncome ? '+' : '-'}${CurrencyFormatter.format(tx.amount)}',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold, color: color, fontSize: 14),
+              ),
+              Text(
+                DateFormat('dd/MM').format(tx.date),
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
-
-  void _openAddJar(BuildContext context, FinanceProvider provider) async {
-    final result = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-          builder: (_) => const AddEditAccountScreen()),
-    );
-    if (result == true) provider.loadDashboard();
-  }
-
-  void _openEditJar(BuildContext context, ApiAccount account,
-      FinanceProvider provider) async {
-    final result = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-          builder: (_) => AddEditAccountScreen(account: account)),
-    );
-    if (result == true) provider.loadDashboard();
-  }
-
 }
