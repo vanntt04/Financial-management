@@ -21,6 +21,12 @@ class ApiConstants {
   // ── User profile ───────────────────────────────────────────────────────────
   static String get currentUser => '$baseUrl/api/users/me';
 
+  // ── Accounts / Jars ────────────────────────────────────────────────────────
+  static String get accounts => '$baseUrl/api/accounts';
+
+  // ── Transactions ───────────────────────────────────────────────────────────
+  static String get transactions => '$baseUrl/api/transactions';
+
   // ── Finance / categories / reports ─────────────────────────────────────────
   static String get categories => '$baseUrl/api/categories';
   static String get monthlyReportSummary =>
