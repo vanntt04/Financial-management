@@ -27,6 +27,9 @@ class ApiConstants {
   // ── Transactions ───────────────────────────────────────────────────────────
   static String get transactions => '$baseUrl/api/transactions';
 
+  // ── Financial Goals ────────────────────────────────────────────────────────
+  static String get goals => '$baseUrl/api/goals';
+
   // ── Finance / categories / reports ─────────────────────────────────────────
   static String get categories => '$baseUrl/api/categories';
   static String get monthlyReportSummary =>
