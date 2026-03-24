@@ -15,6 +15,8 @@ class GoalService {
     return [];
   }
 
+
+
   /// Tạo mục tiêu tài chính mới.
   static Future<FinancialGoal> createGoal({
     required String name,
@@ -37,6 +39,8 @@ class GoalService {
     final data = body['data'] as Map<String, dynamic>;
     return FinancialGoal.fromJson(data);
   }
+
+
 
   /// Cập nhật mục tiêu tài chính.
   static Future<FinancialGoal> updateGoal(
