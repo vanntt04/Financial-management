@@ -16,6 +16,8 @@ class FinanceService {
     return [];
   }
 
+
+
   /// Lấy danh mục theo loại ('INCOME' hoặc 'EXPENSE').
   static Future<List<CategoryModel>> getCategoriesByType(String type) async {
     final all = await getCategories();
